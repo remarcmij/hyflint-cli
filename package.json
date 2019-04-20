@@ -1,12 +1,15 @@
 {
-  "name": "hyf-lint",
+  "name": "hyflint-cli",
   "version": "1.0.0",
   "description": "HYF linter",
   "scripts": {
     "start": "node ./src/index"
   },
   "author": "Jim Cramer",
-  "license": "CC-BY-4.0",
+  "license": "ISC",
+  "bin": {
+    "hyflint": "src/index.js"
+  },
   "devDependencies": {
     "eslint": "^5.9.0",
     "eslint-config-airbnb": "^17.1.0",
