@@ -1,0 +1,16 @@
+module.exports = {
+  WARNING: 'warning',
+  ERROR: 'error',
+  CONST_SHOUT_CASE: 'SHOUT_CASE variables should be const',
+  USE_CAMEL_CASE: 'Use camelCase name',
+  USE_PASCAL_CASE: 'Use PascalCase name',
+  AVOID_NUMBERS: 'Use descriptive names: avoid numbers',
+  AVOID_GENERIC_NAMES: 'Avoid generic and cryptic names',
+  NO_VAR: 'Use let or const instead of var',
+  NO_NESTED_FUNC_DECLARATIONS: 'No nested function declarations',
+  USE_PLURAL_NAME: 'Does this name indicate a plural?',
+  COMMENTED_OUT_CODE: 'Remove potentially commented-out code',
+  NO_ESLINT_DISABLE: 'Do not disable ESLint rules',
+  DEPRECATED_HTML_ELEMENT: 'HTML Element is deprecated',
+  VERIFY_PASCAL_CASE: 'PascalCase: constructor or React component?',
+};

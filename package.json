@@ -1,0 +1,29 @@
+{
+  "name": "hyf-lint",
+  "version": "1.0.0",
+  "description": "HYF linter",
+  "scripts": {
+    "start": "node ./src/index"
+  },
+  "author": "Jim Cramer",
+  "license": "CC-BY-4.0",
+  "devDependencies": {
+    "eslint": "^5.9.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-config-prettier": "^3.3.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jsx-a11y": "^6.1.2",
+    "eslint-plugin-prettier": "^3.0.0",
+    "eslint-plugin-react": "^7.11.1",
+    "prettier": "^1.15.2"
+  },
+  "dependencies": {
+    "acorn": "^6.1.1",
+    "acorn-class-fields": "^0.3.1",
+    "acorn-jsx": "^5.0.1",
+    "acorn-walk": "^6.1.1",
+    "commander": "^2.20.0",
+    "glob": "^7.1.3",
+    "html-validator": "^4.0.1"
+  }
+}
