@@ -7,6 +7,20 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "playground",
+      "program": "${workspaceFolder}/src/index",
+      "args": ["./playground"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "go-dutch",
+      "program": "${workspaceFolder}/src/index",
+      "args": ["../go-dutch"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "Class 20 js3",
       "program": "${workspaceFolder}/src/index",
       "args": ["../class20/js3"]

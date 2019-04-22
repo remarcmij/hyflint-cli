@@ -2,13 +2,11 @@ const C = require('./constants');
 const { isCamelCase, isPascalCase, isShoutCase } = require('./helpers');
 
 const NOISE_AFFIXES = [/\wArray$/, /\wObject$/, /^the/];
-const GENERIC_NAMES = ['data', 'info'];
 
 function VariableDeclaration(node, state, c) {
-  // console.log('VariableDeclaration :', node);
-  state.variableDeclaration = node;
+  state.pushNode(node);
   node.declarations.forEach(decl => c(decl, state));
-  state.variableDeclaration = null;
+  state.popNode();
 }
 
 function checkBadName(name, kind, loc, state) {
@@ -40,17 +38,14 @@ function checkBadName(name, kind, loc, state) {
       name,
       kind,
     });
-  } else if (name.length === 1 && !state.forStatement && !state.arrowFunctionExpression) {
+  } else if (
+    name.length === 1 &&
+    !state.findNode('ForStatement') &&
+    !state.findNode('ArrowFunctionExpression')
+  ) {
     state.log({
       loc,
       message: C.AVOID_SINGLE_LETTER_NAMES,
-      name,
-      kind,
-    });
-  } else if (GENERIC_NAMES.includes(name)) {
-    state.log({
-      loc,
-      message: C.AVOID_GENERIC_NAMES,
       name,
       kind,
     });
@@ -58,14 +53,13 @@ function checkBadName(name, kind, loc, state) {
 }
 
 function VariableDeclarator(node, state, c) {
-  // console.log('VariableDeclarator :', node);
   const { id, init, loc } = node;
   if (id.type === 'Identifier') {
-    state.addVariableName(id.name, state.variableDeclaration.kind, loc);
-    checkBadName(id.name, state.variableDeclaration.kind, loc, state);
+    const variableDeclaration = state.findNode('VariableDeclaration');
+    checkBadName(id.name, variableDeclaration.kind, loc, state);
 
-    if (state.variableDeclaration.kind === 'var') {
-      state.log({ loc, message: C.NO_VAR, kind: state.variableDeclaration.kind, name: id.name });
+    if (variableDeclaration.kind === 'var') {
+      state.log({ loc, message: C.NO_VAR, kind: variableDeclaration.kind, name: id.name });
     }
     if (init) {
       if (init.type === 'FunctionExpression' || init.type === 'ArrowExpression') {
@@ -73,16 +67,16 @@ function VariableDeclarator(node, state, c) {
           state.log({
             loc,
             message: C.USE_CAMEL_CASE,
-            kind: state.variableDeclaration.kind,
+            kind: variableDeclaration.kind,
             name: id.name,
           });
         }
       } else if (isShoutCase(id.name)) {
-        if (state.variableDeclaration.kind !== 'const') {
+        if (variableDeclaration.kind !== 'const') {
           state.log({
             loc,
             message: C.CONST_SHOUT_CASE,
-            kind: state.variableDeclaration.kind,
+            kind: variableDeclaration.kind,
             name: id.name,
           });
         }
@@ -90,7 +84,7 @@ function VariableDeclarator(node, state, c) {
         state.log({
           loc,
           message: C.USE_CAMEL_CASE,
-          kind: state.variableDeclaration.kind,
+          kind: variableDeclaration.kind,
           name: id.name,
         });
       }
@@ -104,25 +98,7 @@ function VariableDeclarator(node, state, c) {
   }
 }
 
-function NewExpression(node, state, c) {
-  // console.log('NewExpression :', node);
-  const { callee, arguments: args, loc } = node;
-  if (callee.type === 'Identifier') {
-    if (!isPascalCase(callee.name)) {
-      state.log({
-        loc,
-        message: C.EXPECTED_PASCAL_CASE,
-        name: callee.name,
-        kind: state.variableDeclaration.kind,
-      });
-    }
-  } else {
-    c(callee, state);
-  }
-  args.forEach(arg => c(arg, state));
-}
-
-function checkParameterName(name, loc, state) {
+function handleParameterName(name, loc, state) {
   checkBadName(name, 'param', loc, state);
   if (!isCamelCase(name)) {
     state.log({ loc, message: C.USE_CAMEL_CASE, name, kind: 'param' });
@@ -134,20 +110,20 @@ function parseFunctionParams(params, loc, state, c) {
   params.forEach(param => {
     switch (param.type) {
       case 'Identifier':
-        checkParameterName(param.name, loc, state);
+        handleParameterName(param.name, loc, state);
         break;
       case 'AssignmentPattern':
-        checkParameterName(param.left.name, loc, state);
+        handleParameterName(param.left.name, loc, state);
         c(param.right, state);
         break;
       case 'RestElement':
-        checkParameterName(param.argument.name, loc, state);
+        handleParameterName(param.argument.name, loc, state);
         break;
       case 'ArrayPattern':
-        param.elements.forEach(element => checkParameterName(element.name, loc, state));
+        param.elements.forEach(element => handleParameterName(element.name, loc, state));
         break;
       case 'ObjectPattern':
-        // TODO: do we need this?
+        // Parameter names are taken from object properties
         break;
       default:
     }
@@ -156,47 +132,44 @@ function parseFunctionParams(params, loc, state, c) {
 }
 
 function FunctionDeclaration(node, state, c) {
-  // console.log('FunctionDeclaration :', node);
   const { id, params, body, loc } = node;
-  // if (id !== null) {
-  state.addFunctionName(id.name, loc);
 
   if (!isCamelCase(id.name) && !state.reactDetected) {
     state.log({ loc, message: C.USE_CAMEL_CASE, kind: 'function', name: id.name });
   }
 
-  if (state.functionNesting > 0) {
-    state.log({ loc, message: C.NO_NESTED_FUNC_DECLARATIONS, kind: 'function', name: id.name });
+  if (state.nestingDepth > 0) {
+    state.log({ loc, message: C.AVOID_NESTED_FUNC_DECLARATIONS, kind: 'function', name: id.name });
   }
 
+  state.pushNode(node);
+  state.nestingDepth += 1;
   parseFunctionParams(params, loc, state, c);
-
-  state.functionNesting += 1;
   c(body, state);
-  state.functionNesting -= 1;
+  state.nestingDepth -= 1;
+  state.popNode();
 }
 
 function FunctionExpression(node, state, c) {
-  // console.log('FunctionExpression :', node);
+  state.pushNode(node);
   const { params, body, loc } = node;
   parseFunctionParams(params, loc, state, c);
   c(body, state);
+  state.popNode();
 }
 
 function ArrowFunctionExpression(node, state, c) {
-  // console.log('ArrowFunctionExpression :', node);
+  state.pushNode(node);
   const { params, body, loc } = node;
-  state.arrowFunctionExpression = node;
   parseFunctionParams(params, loc, state, c);
-  state.arrowFunctionExpression = null;
   c(body, state);
+  state.popNode();
 }
 
 // Class field
 function FieldDefinition(node, state, c) {
   const { key, value, loc } = node;
   if (key.type === 'Identifier') {
-    state.addClassField(`${state.classDeclaration.id.name}.${key.name}`, loc);
     if (!isCamelCase(key.name)) {
       state.log(loc.start.line, {
         message: C.USE_CAMEL_CASE,
@@ -210,11 +183,11 @@ function FieldDefinition(node, state, c) {
 
 function ForStatement(node, state, c) {
   const { init, test, update } = node;
-  state.forStatement = node;
-  c(init, state);
-  c(test, state);
-  c(update, state);
-  state.forStatement = null;
+  state.pushNode(node);
+  if (init) c(init, state);
+  if (test) c(test, state);
+  if (update) c(update, state);
+  state.popNode();
 }
 
 function ImportDeclaration(node, state) {
@@ -226,37 +199,31 @@ function ImportDeclaration(node, state) {
 
 function ClassDeclaration(node, state, c) {
   const { id, body, superClass, loc } = node;
-  state.addClassName(id.name, loc);
   if (!isPascalCase(id.name)) {
     state.log({ loc, message: C.USE_CAMEL_CASE, kind: 'class', name: id.name });
   }
 
-  state.classDeclaration = node;
   c(body, state);
-  state.classDeclaration = null;
-
   if (superClass) {
     c(superClass, state);
   }
 }
 
-function MethodDefinition(node, state, c) {
-  // console.log('MethodDefinition :', node);
-  const { key, value, kind, loc } = node;
-  switch (kind) {
-    case 'constructor':
-      break;
-    case 'method':
-      state.addMethodDefinition(`${state.classDeclaration.id.name}.${key.name}`, loc);
-      break;
-    case 'get': // TODO: implement?
-      break;
-    case 'set': // TODO: implement
-      break;
-    default:
-      throw new Error(`Unexpected method kind: ${kind}`);
+function NewExpression(node, state, c) {
+  const { callee, arguments: args, loc } = node;
+  if (callee.type === 'Identifier') {
+    if (!isPascalCase(callee.name)) {
+      state.log({
+        loc,
+        message: C.EXPECTED_PASCAL_CASE,
+        name: callee.name,
+        kind: 'new',
+      });
+    }
+  } else {
+    c(callee, state);
   }
-  c(value, state);
+  args.forEach(arg => c(arg, state));
 }
 
 module.exports = {
@@ -267,7 +234,6 @@ module.exports = {
   FunctionDeclaration,
   FunctionExpression,
   ImportDeclaration,
-  MethodDefinition,
   NewExpression,
   VariableDeclaration,
   VariableDeclarator,

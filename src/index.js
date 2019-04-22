@@ -6,7 +6,7 @@ const path = require('path');
 const util = require('util');
 const glob = util.promisify(require('glob'));
 const lint = require('./linter');
-const State = require('./state');
+const Logger = require('./issue-logger');
 
 const { detectCommentedOutCode, detectESLintDisable } = require('./analyzer');
 
@@ -23,14 +23,13 @@ async function executeTest(globPattern) {
   }
 
   const promises = filePaths.map(filePath => {
-    // console.log(`Processing ${filePath}`);
-    const state = new State(filePath);
+    const logger = new Logger(filePath);
     return fsReadFile(filePath, 'utf8').then(progText => {
       try {
-        lint(progText, state);
-        detectCommentedOutCode(progText, state);
-        // detectESLintDisable(progText, state);
-        return state.getReport();
+        lint(progText, logger);
+        detectCommentedOutCode(progText, logger);
+        detectESLintDisable(progText, logger);
+        return logger.getReport();
       } catch (err) {
         return {
           issues: [
@@ -64,10 +63,8 @@ async function executeTest(globPattern) {
 
 (async () => {
   try {
-    const [, , dir] = process.argv;
-    if (dir) {
-      await executeTest(path.resolve(dir, '**/*.{js,jsx}'));
-    }
+    const [, , fileSpec] = process.argv;
+    await executeTest(path.resolve(fileSpec, '**/*.{js,jsx}'));
   } catch (err) {
     console.error(err);
   }
