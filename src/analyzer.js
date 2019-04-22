@@ -22,7 +22,7 @@ const JAVASCRIPT_STATEMENTS = new Set([
   'await',
 ]);
 
-function detectCommentedOutCode(progText, logger) {
+function detectCommentedOutCode(progText, state) {
   const lines = progText.split('\n');
 
   const iter = lines[Symbol.iterator]();
@@ -33,7 +33,7 @@ function detectCommentedOutCode(progText, logger) {
     const matches = node.value.match(/^\s*\/\/.*?([a-zA-Z_]+)/);
 
     if (matches && JAVASCRIPT_STATEMENTS.has(matches[1])) {
-      logger.log(line, C.WARNING, { message: C.COMMENTED_OUT_CODE });
+      state.log({ line, message: C.COMMENTED_OUT_CODE });
 
       while (!node.done && /^\s*\/\//.test(node.value)) {
         node = iter.next();
@@ -46,7 +46,7 @@ function detectCommentedOutCode(progText, logger) {
   }
 }
 
-function detectESLintDisable(progText, logger) {
+function detectESLintDisable(progText, state) {
   const lines = progText.split('\n');
 
   const iter = lines[Symbol.iterator]();
@@ -55,7 +55,7 @@ function detectESLintDisable(progText, logger) {
 
   while (!node.done) {
     if (/^\s*\/[/*]\s*eslint-disable/.test(node.value)) {
-      logger.log(line, C.WARNING, { message: C.NO_ESLINT_DISABLE });
+      state.log({ line, message: C.NO_ESLINT_DISABLE });
     }
     node = iter.next();
     line += 1;

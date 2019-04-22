@@ -5,13 +5,10 @@ const classFields = require('acorn-class-fields');
 const walk = require('acorn-walk');
 const jsVisitors = require('./js-visitors');
 const jsxVisitors = require('./jsx-visitors');
-const WalkerState = require('./walker-state');
 
 const JSXParser = acorn.Parser.extend(jsx(), classFields);
 
-function lint(progText, logger) {
-  const state = new WalkerState(logger);
-
+function lint(progText, state) {
   const ast = JSXParser.parse(progText, {
     locations: true,
     ecmaVersion: 9,
@@ -22,6 +19,8 @@ function lint(progText, logger) {
     ...jsVisitors,
     ...jsxVisitors,
   });
+
+  return { issues: state.issues, declarations: state.declarations };
 }
 
 module.exports = lint;

@@ -1,6 +1,6 @@
 const C = require('./constants');
 const { html5ElementSet, deprecatedHtmlElementSet } = require('./html-elements');
-const { isPascalCase } = require('./helpers');
+const { isCamelCase, isPascalCase } = require('./helpers');
 
 function JSXElement(node, state, c) {
   const { openingElement, children } = node;
@@ -12,14 +12,14 @@ function JSXOpeningElement(node, state, c) {
   const { name, loc } = node;
   if (name.type === 'JSXIdentifier') {
     if (deprecatedHtmlElementSet.has(name.name)) {
-      state.logger.log(loc.start.line, C.ERROR, {
+      state.log(loc, C.ERROR, {
         message: C.DEPRECATED_HTML_ELEMENT,
         kind: 'htmlElement',
         name: name.name,
       });
     } else if (!html5ElementSet.has(name.name) && !isPascalCase(name.name)) {
-      state.logger.log(loc.start.line, C.ERROR, {
-        message: C.USE_PASCAL_CASE,
+      state.log(loc, C.ERROR, {
+        message: C.EXPECTED_PASCAL_CASE,
         kind: 'Component',
         name: name.name,
       });
@@ -29,8 +29,11 @@ function JSXOpeningElement(node, state, c) {
 }
 
 function JSXAttribute(node, state, c) {
-  const { name, value } = node;
-  c(name, state);
+  const { name, value, loc } = node;
+  if (!/-/.test(name.name) && !isCamelCase(name.name)) {
+    state.log({ loc, message: C.USE_CAMEL_CASE, kind: 'attribute', name: name.name });
+  }
+
   if (value) {
     c(value, state);
   }
@@ -49,7 +52,9 @@ function JSXIdentifier(node, state) {
   const { name, loc } = node;
   // skip CSS-style names
   if (!/-/.test(name)) {
-    state.checkName(name, 'JsxIdentifier', loc);
+    if (!isCamelCase(name)) {
+      state.log({ loc, message: C.USE_CAMEL_CASE, name, kind: 'JSXIdentifier' });
+    }
   }
 }
 

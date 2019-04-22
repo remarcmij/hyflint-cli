@@ -5,8 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const util = require('util');
 const glob = util.promisify(require('glob'));
-const Logger = require('./issue-logger');
 const lint = require('./linter');
+const State = require('./state');
+
 const { detectCommentedOutCode, detectESLintDisable } = require('./analyzer');
 
 const fsReadFile = util.promisify(fs.readFile);
@@ -22,25 +23,23 @@ async function executeTest(globPattern) {
   }
 
   const promises = filePaths.map(filePath => {
-    console.log(`Processing ${filePath}`);
-    const logger = new Logger(filePath);
+    // console.log(`Processing ${filePath}`);
+    const state = new State(filePath);
     return fsReadFile(filePath, 'utf8').then(progText => {
       try {
-        lint(progText, logger);
-        detectCommentedOutCode(progText, logger);
-        detectESLintDisable(progText, logger);
-        return logger.getReport();
+        lint(progText, state);
+        detectCommentedOutCode(progText, state);
+        // detectESLintDisable(progText, state);
+        return state.getReport();
       } catch (err) {
         return {
-          errorCount: 1,
-          warningCount: 0,
           issues: [
             {
-              type: 'error',
               line: err.loc ? err.loc.line : '-',
               message: `Syntax error: ${err.message}`,
             },
           ],
+          declarations: [],
         };
       }
     });
@@ -48,18 +47,18 @@ async function executeTest(globPattern) {
 
   const reports = await Promise.all(promises);
 
-  const totalErrors = reports.reduce((prev, report) => prev + report.errorCount, 0);
+  const totalIssues = reports.reduce((count, report) => count + report.issues.length, 0);
 
-  console.log('\n------------------');
-  reports.forEach(report => {
-    if (report.errorCount + report.warningCount > 0) {
-      console.log(`File: ${report.filePath}`);
-      console.table(report.issues);
-    }
-  });
-
-  if (totalErrors === 0) {
-    console.log('No errors detected');
+  if (totalIssues === 0) {
+    console.log('No issues detected.');
+  } else {
+    reports.forEach(report => {
+      if (report.issues.length > 0) {
+        console.log(report.filePath);
+        console.table(report.issues);
+        console.log('\n');
+      }
+    });
   }
 }
 

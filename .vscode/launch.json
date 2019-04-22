@@ -7,9 +7,23 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Class 20 js3",
+      "program": "${workspaceFolder}/src/index",
+      "args": ["../class20/js3"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Class17Project",
+      "program": "${workspaceFolder}/src/index",
+      "args": ["../class17/Class17Project/client/src"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "Launch Program",
       "program": "${workspaceFolder}/src/index",
-      "args": ["../class17/database"]
+      "args": ["../JavaScript3_solutions/homework"]
     }
   ]
 }
