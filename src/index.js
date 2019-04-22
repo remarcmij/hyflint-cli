@@ -64,7 +64,17 @@ async function executeTest(globPattern) {
 (async () => {
   try {
     const [, , fileSpec] = process.argv;
-    await executeTest(path.resolve(fileSpec, '**/*.{js,jsx}'));
+    const ext = path.extname(fileSpec);
+    let globPattern = '**/*.{js,jsx}';
+    if (ext) {
+      if (!/\.jsx?$/i.test(ext)) {
+        console.error(`Unsupported file extension: ${ext}`);
+        process.exit(1);
+      } else {
+        globPattern = '';
+      }
+    }
+    await executeTest(path.resolve(fileSpec, globPattern));
   } catch (err) {
     console.error(err);
   }
