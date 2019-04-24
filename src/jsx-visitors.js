@@ -13,7 +13,7 @@ function JSXOpeningElement(node, state, c) {
   if (name.type === 'JSXIdentifier') {
     if (deprecatedHtmlElementSet.has(name.name)) {
       state.log(loc, C.ERROR, {
-        message: C.DEPRECATED_HTML_ELEMENT,
+        message: C.DETECTED_DEPRECATED_HTML_ELEMENT,
         kind: 'htmlElement',
         name: name.name,
       });
@@ -31,7 +31,7 @@ function JSXOpeningElement(node, state, c) {
 function JSXAttribute(node, state, c) {
   const { name, value, loc } = node;
   if (!/-/.test(name.name) && !isCamelCase(name.name)) {
-    state.log({ loc, message: C.USE_CAMEL_CASE, kind: 'attribute', name: name.name });
+    state.log({ loc, message: C.EXPECTED_CAMEL_CASE, kind: 'attribute', name: name.name });
   }
 
   if (value) {
@@ -53,7 +53,7 @@ function JSXIdentifier(node, state) {
   // skip CSS-style names
   if (!/-/.test(name)) {
     if (!isCamelCase(name)) {
-      state.log({ loc, message: C.USE_CAMEL_CASE, name, kind: 'JSXIdentifier' });
+      state.log({ loc, message: C.EXPECTED_CAMEL_CASE, name, kind: 'JSXIdentifier' });
     }
   }
 }

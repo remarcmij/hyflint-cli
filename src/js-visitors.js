@@ -13,28 +13,28 @@ function checkBadName(name, kind, loc, state) {
   if (NOISE_AFFIXES.some(regexp => name.match(regexp))) {
     state.log({
       loc,
-      message: C.DROP_NOISE_AFFIX,
+      message: C.DETECTED_NOISE_WORD_AFFIX,
       name,
       kind,
     });
   } else if (/\d+$/.test(name) && !/^h[1-6]$/.test(name)) {
     state.log({
       loc,
-      message: C.REPLACE_NUMERIC_SUFFIX,
+      message: C.DETECTED_NUMERIC_SUFFIX,
       name,
       kind,
     });
   } else if (name === 'l') {
     state.log({
       loc,
-      message: C.AVOID_LETTER_L,
+      message: C.DETECTED_NAME_L,
       name,
       kind,
     });
   } else if (name === 'x') {
     state.log({
       loc,
-      message: C.AVOID_LETTER_X,
+      message: C.DETECTED_NAME_X,
       name,
       kind,
     });
@@ -45,7 +45,7 @@ function checkBadName(name, kind, loc, state) {
   ) {
     state.log({
       loc,
-      message: C.AVOID_SINGLE_LETTER_NAMES,
+      message: C.DETECTED_SINGLE_LETTER_NAME,
       name,
       kind,
     });
@@ -66,7 +66,7 @@ function VariableDeclarator(node, state, c) {
         if (!isCamelCase(id.name) && !state.reactDetected) {
           state.log({
             loc,
-            message: C.USE_CAMEL_CASE,
+            message: C.EXPECTED_CAMEL_CASE,
             kind: variableDeclaration.kind,
             name: id.name,
           });
@@ -83,7 +83,7 @@ function VariableDeclarator(node, state, c) {
       } else if (!isCamelCase(id.name)) {
         state.log({
           loc,
-          message: C.USE_CAMEL_CASE,
+          message: C.EXPECTED_CAMEL_CASE,
           kind: variableDeclaration.kind,
           name: id.name,
         });
@@ -101,7 +101,7 @@ function VariableDeclarator(node, state, c) {
 function handleParameterName(name, loc, state) {
   checkBadName(name, 'param', loc, state);
   if (!isCamelCase(name)) {
-    state.log({ loc, message: C.USE_CAMEL_CASE, name, kind: 'param' });
+    state.log({ loc, message: C.EXPECTED_CAMEL_CASE, name, kind: 'param' });
   }
 }
 
@@ -135,11 +135,16 @@ function FunctionDeclaration(node, state, c) {
   const { id, params, body, loc } = node;
 
   if (!isCamelCase(id.name) && !state.reactDetected) {
-    state.log({ loc, message: C.USE_CAMEL_CASE, kind: 'function', name: id.name });
+    state.log({ loc, message: C.EXPECTED_CAMEL_CASE, kind: 'function', name: id.name });
   }
 
   if (state.nestingDepth > 0) {
-    state.log({ loc, message: C.AVOID_NESTED_FUNC_DECLARATIONS, kind: 'function', name: id.name });
+    state.log({
+      loc,
+      message: C.DETECTED_NESTED_FUNC_DECLARATION,
+      kind: 'function',
+      name: id.name,
+    });
   }
 
   state.pushNode(node);
@@ -171,21 +176,32 @@ function FieldDefinition(node, state, c) {
   const { key, value, loc } = node;
   if (key.type === 'Identifier') {
     if (!isCamelCase(key.name)) {
-      state.log(loc.start.line, {
-        message: C.USE_CAMEL_CASE,
-        kind: 'field',
-        name: key.name,
-      });
+      state.log({ loc, message: C.EXPECTED_CAMEL_CASE, kind: 'field', name: key.name });
     }
   }
   c(value, state);
 }
 
 function ForStatement(node, state, c) {
-  const { init, test, update } = node;
+  const { init, test, update, loc } = node;
   state.pushNode(node);
-  if (init) c(init, state);
-  if (test) c(test, state);
+  if (init) c(test, state);
+  if (test) {
+    const { type, object, property } = test.right;
+    if (
+      type === 'MemberExpression' &&
+      property.type === 'Identifier' &&
+      property.name === 'length'
+    ) {
+      state.log({
+        loc,
+        message: C.DETECTED_ITERATIVE_FOR_LOOP,
+        kind: 'array',
+        name: object.name || '-',
+      });
+    }
+    c(test, state);
+  }
   if (update) c(update, state);
   state.popNode();
 }
@@ -200,7 +216,7 @@ function ImportDeclaration(node, state) {
 function ClassDeclaration(node, state, c) {
   const { id, body, superClass, loc } = node;
   if (!isPascalCase(id.name)) {
-    state.log({ loc, message: C.USE_CAMEL_CASE, kind: 'class', name: id.name });
+    state.log({ loc, message: C.EXPECTED_CAMEL_CASE, kind: 'class', name: id.name });
   }
 
   c(body, state);
