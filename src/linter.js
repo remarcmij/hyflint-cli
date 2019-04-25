@@ -10,7 +10,7 @@ const jsxVisitors = require('./jsx-visitors');
 const JSXParser = acorn.Parser.extend(jsx(), classFields);
 
 function lint(progText, logger) {
-  const state = new State(logger);
+  const state = new State();
   const ast = JSXParser.parse(progText, {
     locations: true,
     ecmaVersion: 9,
@@ -18,8 +18,8 @@ function lint(progText, logger) {
   });
 
   walk.recursive(ast, state, {
-    ...jsVisitors,
-    ...jsxVisitors,
+    ...jsVisitors(logger),
+    ...jsxVisitors(logger),
   });
 }
 

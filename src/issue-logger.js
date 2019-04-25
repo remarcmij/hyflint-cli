@@ -4,7 +4,8 @@ class Logger {
     this.issues = [];
   }
 
-  log(line, issue) {
+  log(loc, issue) {
+    const line = typeof loc === 'object' ? loc.start.line : loc;
     this.issues.push({ line, ...issue });
   }
 

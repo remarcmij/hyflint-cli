@@ -1,23 +1,8 @@
 /* eslint-disable no-underscore-dangle */
 class State {
-  constructor(logger) {
-    this._logger = logger;
-    this._issues = [];
+  constructor() {
     this._nodeStack = [];
     this.nestingDepth = 0;
-  }
-
-  log({ loc, message, name = '-', kind = '-' }) {
-    this._logger.log(loc.start.line, { message, name, kind });
-  }
-
-  getReport() {
-    this._issues.sort((a, b) => a.line - b.line);
-    return {
-      filePath: this.filePath,
-      issues: this._issues,
-      declarations: this.declarations,
-    };
   }
 
   pushNode(node) {
