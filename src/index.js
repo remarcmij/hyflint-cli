@@ -5,16 +5,18 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
+const program = require('commander');
 const glob = util.promisify(require('glob'));
 const lint = require('./linter');
 const Logger = require('./issue-logger');
+const packageJson = require('../package.json');
 const { checkVersion } = require('./version');
 
 const { detectCommentedOutCode, detectESLintDisable } = require('./analyzer');
 
 const fsReadFile = util.promisify(fs.readFile);
 
-async function executeTest(globPattern) {
+async function executeTest(globPattern, options) {
   const filePaths = await glob(globPattern, {
     ignore: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/slides/**'],
   });
@@ -30,7 +32,9 @@ async function executeTest(globPattern) {
       try {
         const identifiers = lint(progText, logger);
         detectCommentedOutCode(progText, identifiers, logger);
-        detectESLintDisable(progText, logger);
+        if (options.eslint) {
+          detectESLintDisable(progText, logger);
+        }
         return logger.getReport();
       } catch (err) {
         return {
@@ -65,9 +69,13 @@ async function executeTest(globPattern) {
 
 (async () => {
   try {
-    checkVersion();
+    program
+      .version(packageJson.version)
+      .option('-e, --no-eslint', 'Skip eslint-disable checks')
+      .parse(process.argv);
 
-    const [, , fileSpec] = process.argv;
+    const [fileSpec] = program.args;
+
     if (!fileSpec) {
       console.log('Missing file specification');
       process.exit(1);
@@ -82,7 +90,9 @@ async function executeTest(globPattern) {
         globPattern = '';
       }
     }
-    await executeTest(path.resolve(fileSpec, globPattern));
+    await executeTest(path.resolve(fileSpec, globPattern), program);
+
+    await checkVersion();
   } catch (err) {
     console.error(err);
   }

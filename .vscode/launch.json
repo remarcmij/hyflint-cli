@@ -7,6 +7,13 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "hyflint-cli itself",
+      "program": "${workspaceFolder}/src/index",
+      "args": ["--no-elint", "."]
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "playground",
       "program": "${workspaceFolder}/src/index",
       "args": ["./playground"]
