@@ -18,7 +18,7 @@ module.exports = logger => {
     if (name.type === C.JSX_IDENTIFIER) {
       if (deprecatedHtmlElementSet.has(name.name)) {
         logger.log(loc, {
-          message: C.DETECTED_DEPRECATED_HTML_ELEMENT,
+          message: C.DEPRECATED_HTML_ELEMENT,
           kind: 'htmlElement',
           name: name.name,
         });

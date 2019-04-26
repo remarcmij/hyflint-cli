@@ -2,6 +2,7 @@
 class State {
   constructor() {
     this._nodeStack = [];
+    this._identifiers = new Set();
     this.nestingDepth = 0;
   }
 
@@ -18,6 +19,14 @@ class State {
 
   findNode(type) {
     return this._nodeStack.find(node => node.type === type);
+  }
+
+  addIdentifier(identifier) {
+    this._identifiers.add(identifier);
+  }
+
+  getIdentifiers() {
+    return this._identifiers;
   }
 }
 

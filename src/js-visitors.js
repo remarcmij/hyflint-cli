@@ -12,19 +12,19 @@ module.exports = logger => {
 
   const checkBadName = (name, kind, loc, state) => {
     if (NOISE_AFFIXES.some(regexp => name.match(regexp))) {
-      logger.log(loc, { message: C.DETECTED_NOISE_WORD_AFFIX, name, kind });
+      logger.log(loc, { message: C.NOISE_WORD_AFFIX, name, kind });
     } else if (/\d+$/.test(name) && !/^h[1-6]$/.test(name)) {
-      logger.log(loc, { message: C.DETECTED_NUMERIC_SUFFIX, name, kind });
+      logger.log(loc, { message: C.NUMERIC_SUFFIX, name, kind });
     } else if (name === 'l') {
-      logger.log(loc, { message: C.DETECTED_NAME_L, name, kind });
+      logger.log(loc, { message: C.SINGLE_LETTER_NAME_L, name, kind });
     } else if (name === 'x') {
-      logger.log(loc, { message: C.DETECTED_NAME_X, name, kind });
+      logger.log(loc, { message: C.SINGLE_LETTER_NAME_X, name, kind });
     } else if (
       name.length === 1 &&
       !state.findNode(C.FOR_STATEMENT) &&
       !state.findNode(C.ARROW_FUNCTION_EXPRESSION)
     ) {
-      logger.log(loc, { message: C.DETECTED_SINGLE_LETTER_NAME, name, kind });
+      logger.log(loc, { message: C.SINGLE_LETTER_NAME, name, kind });
     }
   };
 
@@ -41,10 +41,11 @@ module.exports = logger => {
       const variableDeclaration = state.findNode(C.VARIABLE_DECLARATION);
       const { kind } = variableDeclaration;
       const { name } = id;
+      state.addIdentifier(name);
       checkBadName(name, kind, loc, state);
 
       if (variableDeclaration.kind === 'var') {
-        logger.log(loc, { message: C.NO_VAR, name, kind });
+        logger.log(loc, { message: C.UNEXPECTED_VAR, name, kind });
       }
       if (init) {
         if (init.type === C.FUNCTION_EXPRESSION || init.type === C.ARROW_FUNCTION_EXPRESSION) {
@@ -57,13 +58,13 @@ module.exports = logger => {
           }
         } else if (!isCamelCase(id.name)) {
           logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind });
-          logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind });
         }
       }
     }
   };
 
   const handleParameterName = (name, loc, state) => {
+    state.addIdentifier(name);
     checkBadName(name, 'param', loc, state);
     if (!isCamelCase(name)) {
       logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind: 'param' });
@@ -96,6 +97,7 @@ module.exports = logger => {
 
   const FunctionDeclaration = (node, state, c) => {
     const { id, params, body, loc } = node;
+    state.addIdentifier(id.name);
 
     state.pushNode(node);
     state.nestingDepth += 1;
@@ -110,7 +112,7 @@ module.exports = logger => {
 
     if (state.nestingDepth > 0) {
       logger.log(loc, {
-        message: C.DETECTED_NESTED_FUNC_DECLARATION,
+        message: C.NESTED_FUNC_DECLARATION,
         kind: 'function',
         name: id.name,
       });
@@ -133,21 +135,12 @@ module.exports = logger => {
     state.popNode();
   };
 
-  // Class field
-  const FieldDefinition = (node, state, c) => {
-    const { key, value, loc } = node;
-    c(value, state);
-    if (key.type === C.IDENTIFIER) {
-      if (!isCamelCase(key.name)) {
-        logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name: key.name, kind: 'field' });
-      }
-    }
-  };
-
   const ForStatement = (node, state, c) => {
     const { init, test, update, loc } = node;
     state.pushNode(node);
-    if (init) c(test, state);
+    if (init) {
+      c(init, state);
+    }
     if (test) {
       const { type, object, property } = test.right;
       if (
@@ -156,7 +149,7 @@ module.exports = logger => {
         property.name === 'length'
       ) {
         logger.log(loc, {
-          message: C.DETECTED_CLASSIC_FOR_LOOP,
+          message: C.CLASSIC_FOR_LOOP,
           name: object.name || '-',
           kind: 'array',
         });
@@ -167,23 +160,39 @@ module.exports = logger => {
     state.popNode();
   };
 
-  const ClassDeclaration = (node, state, c) => {
-    const { id, body, superClass, loc } = node;
-    c(body, state);
-    if (superClass) {
-      c(superClass, state);
-    }
-    if (!isPascalCase(id.name)) {
-      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name: id.name, kind: 'class' });
-    }
-  };
-
   const NewExpression = (node, state, c) => {
     const { callee, arguments: args, loc } = node;
     c(callee, state);
     args.forEach(arg => c(arg, state));
     if (callee.type === C.IDENTIFIER && !isPascalCase(callee.name)) {
       logger.log(loc, { message: C.EXPECTED_PASCAL_CASE, name: callee.name, kind: 'new' });
+    }
+  };
+
+  const ClassDeclaration = (node, state, c) => {
+    const { id, body, superClass, loc } = node;
+    c(body, state);
+    if (superClass) {
+      c(superClass, state);
+    }
+
+    const { name } = id;
+    state.addIdentifier(name);
+    if (!isPascalCase(name)) {
+      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind: 'class' });
+    }
+  };
+
+  // Class field
+  const FieldDefinition = (node, state, c) => {
+    const { key, value, loc } = node;
+    c(value, state);
+    if (key.type === C.IDENTIFIER) {
+      const { name } = key;
+      state.addIdentifier(name);
+      if (!isCamelCase(name)) {
+        logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind: 'field' });
+      }
     }
   };
 

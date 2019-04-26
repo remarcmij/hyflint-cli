@@ -26,8 +26,8 @@ async function executeTest(globPattern) {
     const logger = new Logger(filePath);
     return fsReadFile(filePath, 'utf8').then(progText => {
       try {
-        lint(progText, logger);
-        detectCommentedOutCode(progText, logger);
+        const identifiers = lint(progText, logger);
+        detectCommentedOutCode(progText, identifiers, logger);
         detectESLintDisable(progText, logger);
         return logger.getReport();
       } catch (err) {

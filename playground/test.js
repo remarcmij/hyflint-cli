@@ -1,9 +1,2 @@
-const PriceValue = props => {
-  const a = 1;
-  return (
-    <span className="price">
-      {currency}
-      {price}
-    </span>
-  );
-};
+for (let i = 0; i < 3; i++) {}
+// i = 1;

@@ -21,6 +21,8 @@ function lint(progText, logger) {
     ...jsVisitors(logger),
     ...jsxVisitors(logger),
   });
+
+  return state.getIdentifiers();
 }
 
 module.exports = lint;
