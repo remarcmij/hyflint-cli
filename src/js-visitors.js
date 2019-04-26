@@ -29,6 +29,7 @@ module.exports = logger => {
   };
 
   const VariableDeclarator = (node, state, c) => {
+    node.isDeclaration = true;
     state.pushNode(node);
     const { id, init, loc } = node;
     c(id, state);
@@ -96,15 +97,19 @@ module.exports = logger => {
   };
 
   const FunctionDeclaration = (node, state, c) => {
+    node.isDeclaration = true;
     const { id, params, body, loc } = node;
     state.addIdentifier(id.name);
 
     state.pushNode(node);
     state.nestingDepth += 1;
-    parseFunctionParams(params, loc, state, c);
+    c(id, state);
+    params.forEach(param => c(param, state));
     c(body, state);
     state.nestingDepth -= 1;
     const { jsxDetected } = state.popNode();
+
+    parseFunctionParams(params, loc, state, c);
 
     if (!isCamelCase(id.name) && !jsxDetected) {
       logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name: id.name, kind: 'function' });
@@ -183,9 +188,23 @@ module.exports = logger => {
     }
   };
 
+  const MethodDefinition = (node, state, c) => {
+    const { key, value, loc } = node;
+    c(key, state);
+    c(value, state);
+    if (key === C.IDENTIFIER) {
+      const { name } = key;
+      state.addIdentifier(name);
+      if (!isPascalCase(name)) {
+        logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind: 'method' });
+      }
+    }
+  };
+
   // Class field
   const FieldDefinition = (node, state, c) => {
     const { key, value, loc } = node;
+    c(key, state);
     c(value, state);
     if (key.type === C.IDENTIFIER) {
       const { name } = key;
@@ -203,6 +222,7 @@ module.exports = logger => {
     ForStatement,
     FunctionDeclaration,
     FunctionExpression,
+    MethodDefinition,
     NewExpression,
     VariableDeclaration,
     VariableDeclarator,
