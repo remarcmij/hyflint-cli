@@ -18,7 +18,7 @@ async function executeTest(globPattern) {
   });
 
   if (filePaths.length === 0) {
-    console.log('No matching files');
+    console.log('No *.js(x) files found.');
     return;
   }
 
@@ -64,6 +64,10 @@ async function executeTest(globPattern) {
 (async () => {
   try {
     const [, , fileSpec] = process.argv;
+    if (!fileSpec) {
+      console.log('Missing file specification');
+      process.exit(1);
+    }
     const ext = path.extname(fileSpec);
     let globPattern = '**/*.{js,jsx}';
     if (ext) {
