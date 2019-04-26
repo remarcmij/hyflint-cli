@@ -1,2 +1,9 @@
-const data = [];
-for (let i = 0; i < data.length; i++) {}
+const PriceValue = props => {
+  const a = 1;
+  return (
+    <span className="price">
+      {currency}
+      {price}
+    </span>
+  );
+};

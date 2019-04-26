@@ -10,8 +10,12 @@ module.exports = logger => {
   };
 
   const JSXOpeningElement = (node, state, c) => {
+    const variableDeclarator = state.findNode(C.VARIABLE_DECLARATOR);
+    if (variableDeclarator) {
+      variableDeclarator.jsxDetected = true;
+    }
     const { name, loc } = node;
-    if (name.type === 'JSXIdentifier') {
+    if (name.type === C.JSX_IDENTIFIER) {
       if (deprecatedHtmlElementSet.has(name.name)) {
         logger.log(loc, {
           message: C.DETECTED_DEPRECATED_HTML_ELEMENT,
@@ -32,7 +36,7 @@ module.exports = logger => {
   const JSXAttribute = (node, state, c) => {
     const { name, value, loc } = node;
     if (!/-/.test(name.name) && !isCamelCase(name.name)) {
-      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, kind: 'attribute', name: name.name });
+      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name: name.name, kind: 'attribute' });
     }
 
     if (value) {
@@ -54,7 +58,7 @@ module.exports = logger => {
     // skip CSS-style names
     if (!/-/.test(name)) {
       if (!isCamelCase(name)) {
-        logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind: 'JSXIdentifier' });
+        logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind: C.JSX_IDENTIFIER });
       }
     }
   };
@@ -65,6 +69,10 @@ module.exports = logger => {
   };
 
   const JSXOpeningFragment = (node, state, c) => {
+    const variableDeclaration = state.findNode(C.VARIABLE_DECLARATOR);
+    if (variableDeclaration) {
+      variableDeclaration.jsxDetected = true;
+    }
     node.attributes.forEach(attr => c(attr, state));
   };
 

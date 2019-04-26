@@ -21,42 +21,45 @@ module.exports = logger => {
       logger.log(loc, { message: C.DETECTED_NAME_X, name, kind });
     } else if (
       name.length === 1 &&
-      !state.findNode('ForStatement') &&
-      !state.findNode('ArrowFunctionExpression')
+      !state.findNode(C.FOR_STATEMENT) &&
+      !state.findNode(C.ARROW_FUNCTION_EXPRESSION)
     ) {
       logger.log(loc, { message: C.DETECTED_SINGLE_LETTER_NAME, name, kind });
     }
   };
 
   const VariableDeclarator = (node, state, c) => {
+    state.pushNode(node);
     const { id, init, loc } = node;
-    if (id.type === 'Identifier') {
-      const variableDeclaration = state.findNode('VariableDeclaration');
+    c(id, state);
+    if (init) {
+      c(init, state);
+    }
+    const { jsxDetected } = state.popNode();
+
+    if (id.type === C.IDENTIFIER) {
+      const variableDeclaration = state.findNode(C.VARIABLE_DECLARATION);
       const { kind } = variableDeclaration;
-      checkBadName(id.name, kind, loc, state);
+      const { name } = id;
+      checkBadName(name, kind, loc, state);
 
       if (variableDeclaration.kind === 'var') {
-        logger.log(loc, { message: C.NO_VAR, kind, name: id.name });
+        logger.log(loc, { message: C.NO_VAR, name, kind });
       }
       if (init) {
-        if (init.type === 'FunctionExpression' || init.type === 'ArrowExpression') {
-          if (!isCamelCase(id.name) && !state.reactDetected) {
-            logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, kind, name: id.name });
+        if (init.type === C.FUNCTION_EXPRESSION || init.type === C.ARROW_FUNCTION_EXPRESSION) {
+          if (!isCamelCase(id.name) && !jsxDetected) {
+            logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind });
           }
         } else if (isShoutCase(id.name)) {
           if (variableDeclaration.kind !== 'const') {
-            logger.log(loc, { message: C.CONST_SHOUT_CASE, kind, name: id.name });
+            logger.log(loc, { message: C.CONST_SHOUT_CASE, name, kind });
           }
         } else if (!isCamelCase(id.name)) {
-          logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, kind, name: id.name });
+          logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind });
+          logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind });
         }
       }
-    } else {
-      c(id, state);
-    }
-
-    if (init) {
-      c(init, state);
     }
   };
 
@@ -68,36 +71,41 @@ module.exports = logger => {
   };
 
   const parseFunctionParams = (params, loc, state, c) => {
-    state.kind = 'param';
     params.forEach(param => {
       switch (param.type) {
-        case 'Identifier':
+        case C.IDENTIFIER:
           handleParameterName(param.name, loc, state);
           break;
-        case 'AssignmentPattern':
+        case C.ASSIGNMENT_PATTERN:
           handleParameterName(param.left.name, loc, state);
           c(param.right, state);
           break;
-        case 'RestElement':
+        case C.REST_ELEMENT:
           handleParameterName(param.argument.name, loc, state);
           break;
-        case 'ArrayPattern':
+        case C.ARRAY_PATTERN:
           param.elements.forEach(element => handleParameterName(element.name, loc, state));
           break;
-        case 'ObjectPattern':
+        case C.OBJECT_PATTERN:
           // Parameter names are taken from object properties
           break;
         default:
       }
     });
-    state.kind = null;
   };
 
   const FunctionDeclaration = (node, state, c) => {
     const { id, params, body, loc } = node;
 
-    if (!isCamelCase(id.name) && !state.reactDetected) {
-      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, kind: 'function', name: id.name });
+    state.pushNode(node);
+    state.nestingDepth += 1;
+    parseFunctionParams(params, loc, state, c);
+    c(body, state);
+    state.nestingDepth -= 1;
+    const { jsxDetected } = state.popNode();
+
+    if (!isCamelCase(id.name) && !jsxDetected) {
+      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name: id.name, kind: 'function' });
     }
 
     if (state.nestingDepth > 0) {
@@ -107,13 +115,6 @@ module.exports = logger => {
         name: id.name,
       });
     }
-
-    state.pushNode(node);
-    state.nestingDepth += 1;
-    parseFunctionParams(params, loc, state, c);
-    c(body, state);
-    state.nestingDepth -= 1;
-    state.popNode();
   };
 
   const FunctionExpression = (node, state, c) => {
@@ -135,12 +136,12 @@ module.exports = logger => {
   // Class field
   const FieldDefinition = (node, state, c) => {
     const { key, value, loc } = node;
-    if (key.type === 'Identifier') {
+    c(value, state);
+    if (key.type === C.IDENTIFIER) {
       if (!isCamelCase(key.name)) {
-        logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, kind: 'field', name: key.name });
+        logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name: key.name, kind: 'field' });
       }
     }
-    c(value, state);
   };
 
   const ForStatement = (node, state, c) => {
@@ -150,14 +151,14 @@ module.exports = logger => {
     if (test) {
       const { type, object, property } = test.right;
       if (
-        type === 'MemberExpression' &&
-        property.type === 'Identifier' &&
+        type === C.MEMBER_EXPRESSION &&
+        property.type === C.IDENTIFIER &&
         property.name === 'length'
       ) {
         logger.log(loc, {
           message: C.DETECTED_CLASSIC_FOR_LOOP,
-          kind: 'array',
           name: object.name || '-',
+          kind: 'array',
         });
       }
       c(test, state);
@@ -166,35 +167,24 @@ module.exports = logger => {
     state.popNode();
   };
 
-  const ImportDeclaration = (node, state) => {
-    const { source } = node;
-    if (source.type === 'Literal' && source.value === 'react') {
-      state.reactDetected = true;
-    }
-  };
-
   const ClassDeclaration = (node, state, c) => {
     const { id, body, superClass, loc } = node;
-    if (!isPascalCase(id.name)) {
-      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, kind: 'class', name: id.name });
-    }
-
     c(body, state);
     if (superClass) {
       c(superClass, state);
+    }
+    if (!isPascalCase(id.name)) {
+      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name: id.name, kind: 'class' });
     }
   };
 
   const NewExpression = (node, state, c) => {
     const { callee, arguments: args, loc } = node;
-    if (callee.type === 'Identifier') {
-      if (!isPascalCase(callee.name)) {
-        logger.log(loc, { message: C.EXPECTED_PASCAL_CASE, name: callee.name, kind: 'new' });
-      }
-    } else {
-      c(callee, state);
-    }
+    c(callee, state);
     args.forEach(arg => c(arg, state));
+    if (callee.type === C.IDENTIFIER && !isPascalCase(callee.name)) {
+      logger.log(loc, { message: C.EXPECTED_PASCAL_CASE, name: callee.name, kind: 'new' });
+    }
   };
 
   return {
@@ -204,7 +194,6 @@ module.exports = logger => {
     ForStatement,
     FunctionDeclaration,
     FunctionExpression,
-    ImportDeclaration,
     NewExpression,
     VariableDeclaration,
     VariableDeclarator,
