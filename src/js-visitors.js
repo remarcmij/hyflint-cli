@@ -29,7 +29,6 @@ module.exports = logger => {
   };
 
   const VariableDeclarator = (node, state, c) => {
-    node.isDeclaration = true;
     state.pushNode(node);
     const { id, init, loc } = node;
     c(id, state);
@@ -97,7 +96,6 @@ module.exports = logger => {
   };
 
   const FunctionDeclaration = (node, state, c) => {
-    node.isDeclaration = true;
     const { id, params, body, loc } = node;
     state.addIdentifier(id.name);
 

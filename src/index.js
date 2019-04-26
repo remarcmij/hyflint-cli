@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 /* eslint-disable no-console */
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
 const glob = util.promisify(require('glob'));
 const lint = require('./linter');
 const Logger = require('./issue-logger');
+const { checkVersion } = require('./version');
 
 const { detectCommentedOutCode, detectESLintDisable } = require('./analyzer');
 
@@ -63,6 +65,8 @@ async function executeTest(globPattern) {
 
 (async () => {
   try {
+    checkVersion();
+
     const [, , fileSpec] = process.argv;
     if (!fileSpec) {
       console.log('Missing file specification');
