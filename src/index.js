@@ -69,17 +69,21 @@ async function executeTest(globPattern, options) {
 
 (async () => {
   try {
+    let fileSpec;
     program
       .version(packageJson.version)
+      .arguments('<file-spec>')
       .option('-e, --no-eslint', 'Skip eslint-disable checks')
+      .action(arg => {
+        fileSpec = arg;
+      })
       .parse(process.argv);
 
-    const [fileSpec] = program.args;
-
     if (!fileSpec) {
-      console.log('Missing file specification');
+      console.log('Missing file specification.');
       process.exit(1);
     }
+
     const ext = path.extname(fileSpec);
     let globPattern = '**/*.{js,jsx}';
     if (ext) {

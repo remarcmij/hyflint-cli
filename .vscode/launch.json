@@ -9,7 +9,7 @@
       "request": "launch",
       "name": "hyflint-cli itself",
       "program": "${workspaceFolder}/src/index",
-      "args": ["--no-elint", "."]
+      "args": ["--no-eslint", "."]
     },
     {
       "type": "node",
