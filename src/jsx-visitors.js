@@ -1,5 +1,8 @@
 const C = require('./constants');
-const { html5ElementSet, deprecatedHtmlElementSet } = require('./html-elements');
+const {
+  html5ElementSet,
+  deprecatedHtmlElementSet,
+} = require('./html-elements');
 const { isCamelCase, isPascalCase } = require('./helpers');
 
 module.exports = logger => {
@@ -36,7 +39,11 @@ module.exports = logger => {
   const JSXAttribute = (node, state, c) => {
     const { name, value, loc } = node;
     if (!/-/.test(name.name) && !isCamelCase(name.name)) {
-      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name: name.name, kind: 'attribute' });
+      logger.log(loc, {
+        message: C.EXPECTED_CAMEL_CASE,
+        name: name.name,
+        kind: 'attribute',
+      });
     }
 
     if (value) {
@@ -58,7 +65,11 @@ module.exports = logger => {
     // skip CSS-style names
     if (!/-/.test(name)) {
       if (!isCamelCase(name)) {
-        logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind: C.JSX_IDENTIFIER });
+        logger.log(loc, {
+          message: C.EXPECTED_CAMEL_CASE,
+          name,
+          kind: C.JSX_IDENTIFIER,
+        });
       }
     }
   };

@@ -52,7 +52,10 @@ async function executeTest(globPattern, options) {
 
   const reports = await Promise.all(promises);
 
-  const totalIssues = reports.reduce((count, report) => count + report.issues.length, 0);
+  const totalIssues = reports.reduce(
+    (count, report) => count + report.issues.length,
+    0,
+  );
 
   if (totalIssues === 0) {
     console.log('No issues detected.');

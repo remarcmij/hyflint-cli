@@ -9,7 +9,8 @@ module.exports = {
   NESTED_FUNC_DECLARATION: 'Nested function declaration.',
   NOISE_WORD_AFFIX: 'Noise word as name prefix or suffix.',
   NUMERIC_SUFFIX: 'Numeric suffix in identifier.',
-  SINGLE_LETTER_NAME_L: 'Found ‘l’ as a name: easily confused with the number ‘1’',
+  SINGLE_LETTER_NAME_L:
+    'Found ‘l’ as a name: easily confused with the number ‘1’',
   SINGLE_LETTER_NAME_X: 'Found ‘x’ as a name: unknown?',
   SINGLE_LETTER_NAME: 'Single letter name.',
   UNEXPECTED_VAR: 'Expected let or const instead of var.',

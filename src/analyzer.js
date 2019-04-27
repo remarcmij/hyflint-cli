@@ -36,7 +36,10 @@ function detectCommentedOutCode(progText, identifiers, logger) {
   while (!node.done) {
     const [, keyword] = node.value.match(FIRST_KEYWORD_ON_LINE_REGEXP) || [];
 
-    if (keyword && (JAVASCRIPT_KEYWORDS.has(keyword) || identifiers.has(keyword))) {
+    if (
+      keyword &&
+      (JAVASCRIPT_KEYWORDS.has(keyword) || identifiers.has(keyword))
+    ) {
       logger.log(line, { message: C.COMMENTED_OUT_CODE });
 
       while (!node.done && /^\s*\/\//.test(node.value)) {

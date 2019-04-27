@@ -48,7 +48,10 @@ module.exports = logger => {
         logger.log(loc, { message: C.UNEXPECTED_VAR, name, kind });
       }
       if (init) {
-        if (init.type === C.FUNCTION_EXPRESSION || init.type === C.ARROW_FUNCTION_EXPRESSION) {
+        if (
+          init.type === C.FUNCTION_EXPRESSION ||
+          init.type === C.ARROW_FUNCTION_EXPRESSION
+        ) {
           if (!isCamelCase(id.name) && !jsxDetected) {
             logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind });
           }
@@ -85,7 +88,9 @@ module.exports = logger => {
           handleParameterName(param.argument.name, loc, state);
           break;
         case C.ARRAY_PATTERN:
-          param.elements.forEach(element => handleParameterName(element.name, loc, state));
+          param.elements.forEach(element =>
+            handleParameterName(element.name, loc, state),
+          );
           break;
         case C.OBJECT_PATTERN:
           // Parameter names are taken from object properties
@@ -110,7 +115,11 @@ module.exports = logger => {
     parseFunctionParams(params, loc, state, c);
 
     if (!isCamelCase(id.name) && !jsxDetected) {
-      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name: id.name, kind: 'function' });
+      logger.log(loc, {
+        message: C.EXPECTED_CAMEL_CASE,
+        name: id.name,
+        kind: 'function',
+      });
     }
 
     if (state.nestingDepth > 0) {
@@ -168,7 +177,11 @@ module.exports = logger => {
     c(callee, state);
     args.forEach(arg => c(arg, state));
     if (callee.type === C.IDENTIFIER && !isPascalCase(callee.name)) {
-      logger.log(loc, { message: C.EXPECTED_PASCAL_CASE, name: callee.name, kind: 'new' });
+      logger.log(loc, {
+        message: C.EXPECTED_PASCAL_CASE,
+        name: callee.name,
+        kind: 'new',
+      });
     }
   };
 
@@ -194,7 +207,11 @@ module.exports = logger => {
       const { name } = key;
       state.addIdentifier(name);
       if (!isPascalCase(name)) {
-        logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind: 'method' });
+        logger.log(loc, {
+          message: C.EXPECTED_CAMEL_CASE,
+          name,
+          kind: 'method',
+        });
       }
     }
   };
@@ -208,7 +225,11 @@ module.exports = logger => {
       const { name } = key;
       state.addIdentifier(name);
       if (!isCamelCase(name)) {
-        logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind: 'field' });
+        logger.log(loc, {
+          message: C.EXPECTED_CAMEL_CASE,
+          name,
+          kind: 'field',
+        });
       }
     }
   };

@@ -19,7 +19,10 @@ async function executeTest(globPattern, strategy) {
   });
 
   const reports = await Promise.all(promises);
-  const totalErrors = reports.reduce((prev, report) => prev + report.errorCount, 0);
+  const totalErrors = reports.reduce(
+    (prev, report) => prev + report.errorCount,
+    0,
+  );
 
   reports.forEach(report => {
     if (report.errorCount + report.warningCount > 0) {

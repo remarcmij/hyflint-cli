@@ -28,7 +28,9 @@ async function checkVersion() {
     const text = buffer.toString('utf8');
     const remotePackageJson = JSON.parse(text);
     if (semver.gt(remotePackageJson.version, localPackageJson.version)) {
-      console.log('There is a newer version of hyflint-cli available in GitHub.');
+      console.log(
+        'There is a newer version of hyflint-cli available in GitHub.',
+      );
       console.log('Please update your local repo with a git pull.');
     }
   } catch (_) {
