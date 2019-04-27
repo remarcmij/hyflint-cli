@@ -7,19 +7,21 @@ const REMOTE_PACKAGE_JSON_URL =
   'https://api.github.com/repos/remarcmij/hyflint-cli/contents/package.json';
 
 async function checkVersion() {
+  const headers = {
+    Accept: 'application/vnd.github.v3+json',
+    'User-Agent': 'hyflint-cli',
+  };
+
   const token = process.env.GITHUB_TOKEN;
-  if (!token) {
-    return;
+  if (token) {
+    headers.Authorization = `token ${token}`;
   }
 
   try {
     const res = await axios({
       method: 'GET',
       url: REMOTE_PACKAGE_JSON_URL,
-      headers: {
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'hyflint-cli',
-      },
+      headers,
     });
 
     const buffer = Buffer.from(res.data.content, 'base64');
