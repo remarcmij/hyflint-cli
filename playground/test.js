@@ -1,2 +1,2 @@
-for (let i = 0; i < 3; i++) {}
+function test({ a, b: c }) {}
 // i = 1;

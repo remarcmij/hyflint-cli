@@ -1,6 +1,6 @@
 {
   "name": "hyflint-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "HYF linter",
   "scripts": {
     "start": "node ./src/index"

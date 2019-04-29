@@ -7,9 +7,12 @@ const { isCamelCase, isPascalCase } = require('./helpers');
 
 module.exports = logger => {
   const JSXElement = (node, state, c) => {
-    const { openingElement, children } = node;
+    const { openingElement, children, closingElement } = node;
     c(openingElement, state);
     children.forEach(child => c(child, state));
+    if (closingElement) {
+      c(closingElement, state);
+    }
   };
 
   const JSXOpeningElement = (node, state, c) => {
@@ -38,16 +41,16 @@ module.exports = logger => {
 
   const JSXAttribute = (node, state, c) => {
     const { name, value, loc } = node;
+    if (value) {
+      c(value, state);
+    }
+
     if (!/-/.test(name.name) && !isCamelCase(name.name)) {
       logger.log(loc, {
         message: C.EXPECTED_CAMEL_CASE,
         name: name.name,
         kind: 'attribute',
       });
-    }
-
-    if (value) {
-      c(value, state);
     }
   };
 
@@ -62,7 +65,7 @@ module.exports = logger => {
 
   const JSXIdentifier = node => {
     const { name, loc } = node;
-    // skip CSS-style names
+    // skip kebab-case names
     if (!/-/.test(name)) {
       if (!isCamelCase(name)) {
         logger.log(loc, {
@@ -92,15 +95,17 @@ module.exports = logger => {
   };
 
   const JSXText = () => {};
+  const JSXClosingElement = () => {};
 
   return {
-    JSXElement,
-    JSXOpeningElement,
     JSXAttribute,
+    JSXClosingElement,
+    JSXElement,
     JSXExpressionContainer,
-    JSXMemberExpression,
-    JSXIdentifier,
     JSXFragment,
+    JSXIdentifier,
+    JSXMemberExpression,
+    JSXOpeningElement,
     JSXOpeningFragment,
     JSXSpreadAttribute,
     JSXText,

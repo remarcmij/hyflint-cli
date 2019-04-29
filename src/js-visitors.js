@@ -10,7 +10,7 @@ module.exports = logger => {
     state.popNode();
   };
 
-  const checkBadName = (name, kind, loc, state) => {
+  const checkPoorName = (name, kind, loc, state) => {
     if (NOISE_AFFIXES.some(regexp => name.match(regexp))) {
       logger.log(loc, { message: C.NOISE_WORD_AFFIX, name, kind });
     } else if (/\d+$/.test(name) && !/^h[1-6]$/.test(name)) {
@@ -42,7 +42,8 @@ module.exports = logger => {
       const { kind } = variableDeclaration;
       const { name } = id;
       state.addIdentifier(name);
-      checkBadName(name, kind, loc, state);
+
+      checkPoorName(name, kind, loc, state);
 
       if (variableDeclaration.kind === 'var') {
         logger.log(loc, { message: C.UNEXPECTED_VAR, name, kind });
@@ -66,36 +67,37 @@ module.exports = logger => {
     }
   };
 
-  const handleParameterName = (name, loc, state) => {
-    state.addIdentifier(name);
-    checkBadName(name, 'param', loc, state);
-    if (!isCamelCase(name)) {
-      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind: 'param' });
+  const handleParameter = (node, state, c) => {
+    c(node, state);
+    const { type, loc, name } = node;
+    if (type === C.IDENTIFIER) {
+      state.addIdentifier(name);
+      checkPoorName(name, 'param', loc, state);
+      if (!isCamelCase(name)) {
+        logger.log(loc, {
+          message: C.EXPECTED_CAMEL_CASE,
+          name,
+          kind: 'param',
+        });
+      }
     }
   };
 
-  const parseFunctionParams = (params, loc, state, c) => {
+  const parseFunctionParams = (params, state, c) => {
     params.forEach(param => {
       switch (param.type) {
-        case C.IDENTIFIER:
-          handleParameterName(param.name, loc, state);
-          break;
         case C.ASSIGNMENT_PATTERN:
-          handleParameterName(param.left.name, loc, state);
+          handleParameter(param.left, state, c);
           c(param.right, state);
           break;
         case C.REST_ELEMENT:
-          handleParameterName(param.argument.name, loc, state);
+          handleParameter(param.argument, state, c);
           break;
         case C.ARRAY_PATTERN:
-          param.elements.forEach(element =>
-            handleParameterName(element.name, loc, state),
-          );
-          break;
-        case C.OBJECT_PATTERN:
-          // Parameter names are taken from object properties
+          param.elements.forEach(element => handleParameter(element, state, c));
           break;
         default:
+          handleParameter(param, state, c);
       }
     });
   };
@@ -112,7 +114,7 @@ module.exports = logger => {
     state.nestingDepth -= 1;
     const { jsxDetected } = state.popNode();
 
-    parseFunctionParams(params, loc, state, c);
+    parseFunctionParams(params, state, c);
 
     if (!isCamelCase(id.name) && !jsxDetected) {
       logger.log(loc, {
@@ -133,16 +135,16 @@ module.exports = logger => {
 
   const FunctionExpression = (node, state, c) => {
     state.pushNode(node);
-    const { params, body, loc } = node;
-    parseFunctionParams(params, loc, state, c);
+    const { params, body } = node;
+    parseFunctionParams(params, state, c);
     c(body, state);
     state.popNode();
   };
 
   const ArrowFunctionExpression = (node, state, c) => {
     state.pushNode(node);
-    const { params, body, loc } = node;
-    parseFunctionParams(params, loc, state, c);
+    const { params, body } = node;
+    parseFunctionParams(params, state, c);
     c(body, state);
     state.popNode();
   };
@@ -154,6 +156,12 @@ module.exports = logger => {
       c(init, state);
     }
     if (test) {
+      c(test, state);
+    }
+    if (update) c(update, state);
+    state.popNode();
+
+    if (test) {
       const { type, object, property } = test.right;
       if (
         type === C.MEMBER_EXPRESSION &&
@@ -161,25 +169,24 @@ module.exports = logger => {
         property.name === 'length'
       ) {
         logger.log(loc, {
-          message: C.CLASSIC_FOR_LOOP,
+          message: C.INDEXED_FOR_LOOP,
           name: object.name || '-',
           kind: 'array',
         });
       }
-      c(test, state);
     }
-    if (update) c(update, state);
-    state.popNode();
   };
 
   const NewExpression = (node, state, c) => {
     const { callee, arguments: args, loc } = node;
     c(callee, state);
     args.forEach(arg => c(arg, state));
-    if (callee.type === C.IDENTIFIER && !isPascalCase(callee.name)) {
+
+    const { type, name } = callee;
+    if (type === C.IDENTIFIER && !isPascalCase(name)) {
       logger.log(loc, {
         message: C.EXPECTED_PASCAL_CASE,
-        name: callee.name,
+        name,
         kind: 'new',
       });
     }
@@ -195,7 +202,7 @@ module.exports = logger => {
     const { name } = id;
     state.addIdentifier(name);
     if (!isPascalCase(name)) {
-      logger.log(loc, { message: C.EXPECTED_CAMEL_CASE, name, kind: 'class' });
+      logger.log(loc, { message: C.EXPECTED_PASCAL_CASE, name, kind: 'class' });
     }
   };
 
