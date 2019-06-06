@@ -25,7 +25,7 @@
     "acorn-class-fields": "^0.3.1",
     "acorn-jsx": "^5.0.1",
     "acorn-walk": "^6.1.1",
-    "axios": "^0.18.0",
+    "axios": "^0.19.0",
     "commander": "^2.20.0",
     "dotenv": "^7.0.0",
     "glob": "^7.1.3",
