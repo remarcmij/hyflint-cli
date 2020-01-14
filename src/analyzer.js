@@ -41,7 +41,7 @@ const JAVASCRIPT_KEYWORDS = new Set([
   'interface',
 ]);
 
-const FIRST_KEYWORD_ON_LINE_REGEXP = /^\s*\/\/.*?(\w+)/;
+const FIRST_KEYWORD_ON_LINE_REGEXP = /^\s*\/\/.*?([a-zA-Z_]\w*)/;
 
 function detectCommentedOutCode(progText, identifiers, logger) {
   const lines = progText.split('\n');
