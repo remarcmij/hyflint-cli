@@ -22,9 +22,26 @@ const JAVASCRIPT_KEYWORDS = new Set([
   'try',
   'var',
   'while',
+  'in',
+  'new',
+  'case',
+  'null',
+  'true',
+  'void',
+  'with',
+  'false',
+  'delete',
+  'export',
+  'import',
+  'public',
+  'static',
+  'default',
+  'package',
+  'private',
+  'interface',
 ]);
 
-const FIRST_KEYWORD_ON_LINE_REGEXP = /^\s*\/\/.*?([a-zA-Z_]\w?)/;
+const FIRST_KEYWORD_ON_LINE_REGEXP = /^\s*\/\/.*?([a-zA-Z_]\w*)/;
 
 function detectCommentedOutCode(progText, identifiers, logger) {
   const lines = progText.split('\n');
